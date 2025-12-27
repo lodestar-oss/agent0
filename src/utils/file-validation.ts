@@ -34,7 +34,6 @@ export async function validateFilePath(
           invalidFilePath: filePath,
         },
       };
-      console.error(error);
       return err(error);
     }
   } catch (rawError) {
@@ -46,7 +45,6 @@ export async function validateFilePath(
         filePath,
       },
     };
-    console.error(error);
     return err(error);
   }
 }

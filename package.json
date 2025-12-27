@@ -6,9 +6,12 @@
     "start": "bun run src/index.ts",
     "type-check": "bunx --bun tsc --noEmit",
     "format": "bunx prettier . --write",
-    "format:check": "bunx prettier . --check"
+    "format:check": "bunx prettier . --check",
+    "test:read-file": "bun run tests/read-file-tool.test.ts"
   },
   "dependencies": {
+    "@ai-sdk/groq": "^3.0.1",
+    "@t3-oss/env-core": "^0.13.10",
     "ai": "^6.0.3",
     "neverthrow": "^8.2.0",
     "zod": "^4.2.1"
