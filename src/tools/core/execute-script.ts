@@ -9,6 +9,14 @@ export const executeScriptToolInputSchema = z.object({
     .string()
     .min(1, "Path cannot be empty")
     .describe("The absolute path to the TypeScript file to execute."),
+  timeout: z
+    .int("Timeout must be an integer")
+    .min(1000, "Timeout must be at least 1000 milliseconds (1 second)")
+    .max(300000, "Timeout must be at most 300000 milliseconds (5 minutes)")
+    .default(5000)
+    .describe(
+      "The timeout in milliseconds. Defaults to 5000 milliseconds (5 seconds)."
+    ),
 });
 
 export type ExecuteScriptToolInput = z.infer<
@@ -17,9 +25,15 @@ export type ExecuteScriptToolInput = z.infer<
 
 export async function executeScriptToolExecuteFunction({
   path,
+  timeout,
 }: ExecuteScriptToolInput): Promise<
   Result<
-    { stdout: string; stderr: string; exitCode: number },
+    {
+      stdout: string;
+      stderr: string;
+      exitCode: number;
+      signalCode: string | undefined;
+    },
     FileDoesNotExistError | UnexpectedError
   >
 > {
@@ -30,15 +44,16 @@ export async function executeScriptToolExecuteFunction({
   const validPath = validatePathResult.value;
 
   try {
-    const process = Bun.spawnSync(["bun", "run", validPath]);
-
-    const stdout = process.stdout.toString();
-    const stderr = process.stderr.toString();
+    const process = Bun.spawnSync({
+      cmd: ["bun", "run", validPath],
+      timeout,
+    });
 
     return ok({
-      stdout,
-      stderr,
+      stdout: process.stdout.toString(),
+      stderr: process.stderr.toString(),
       exitCode: process.exitCode,
+      signalCode: process.signalCode,
     });
   } catch (rawError) {
     const error: UnexpectedError = {
@@ -55,7 +70,7 @@ export async function executeScriptToolExecuteFunction({
 
 export const executeScriptTool = tool({
   description:
-    "Execute a TypeScript file as a script in the Bun runtime. This process is blocking and will wait for completion. Returns stdout, stderr, and exit code.",
+    "Execute a TypeScript file as a script in the Bun runtime. This process is blocking and will wait for completion. Returns stdout, stderr, exit code, and signal code.",
   inputSchema: executeScriptToolInputSchema,
   execute: executeScriptToolExecuteFunction,
   toModelOutput: ({ input, output }) => {

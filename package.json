@@ -7,6 +7,7 @@
     "type-check": "bunx --bun tsc --noEmit",
     "format": "bunx prettier . --write",
     "format:check": "bunx prettier . --check",
+    "try": "bun run tests/try.ts",
     "test:read-file": "bun run tests/read-file-tool.test.ts"
   },
   "dependencies": {
