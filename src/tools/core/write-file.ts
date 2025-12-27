@@ -1,5 +1,7 @@
 import * as z from "zod";
 import { tool } from "ai";
+import { type Result, ok, err } from "neverthrow";
+import type { UnexpectedError } from "@/types";
 
 export const writeFileToolInputSchema = z.object({
   path: z
@@ -19,13 +21,21 @@ export type WriteFileToolInput = z.infer<typeof writeFileToolInputSchema>;
 export async function writeFileToolExecuteFunction({
   path,
   content,
-}: WriteFileToolInput) {
+}: WriteFileToolInput): Promise<Result<string, UnexpectedError>> {
   try {
     await Bun.write(path, content);
-  } catch (error) {
-    throw new Error(`Unexpected error while writing file to ${path}.`);
+    return ok(`File is successfully written to ${path}.`);
+  } catch (rawError) {
+    const error: UnexpectedError = {
+      code: "UNEXPECTED_ERROR",
+      message: "Unexpected error occurred while writing file.",
+      cause: rawError,
+      context: {
+        filePath: path,
+      },
+    };
+    return err(error);
   }
-  return `File is successfully written to ${path}.`;
 }
 
 export const writeFileTool = tool({
@@ -33,4 +43,26 @@ export const writeFileTool = tool({
     "Write content to a file. Creates a new file or overwrites an existing file.",
   inputSchema: writeFileToolInputSchema,
   execute: writeFileToolExecuteFunction,
+  toModelOutput: ({ input, output }) => {
+    if (output.isErr()) {
+      console.error("\nWrite file tool call failed with error:");
+      console.error(output.error);
+      return {
+        type: "error-json",
+        value: {
+          code: output.error.code,
+          message: output.error.message,
+          cause: String(output.error.cause),
+          context: {
+            path: input.path,
+          },
+        },
+      };
+    }
+
+    return {
+      type: "text",
+      value: output.value,
+    };
+  },
 });
