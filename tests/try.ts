@@ -1,15 +1,35 @@
-const process = Bun.spawnSync({
-  cwd: import.meta.dir,
-  cmd: ["bun", "run", "long-script.ts"],
-  timeout: 1000,
-});
+console.write(`\nAI: Some message`);
+console.write("\nYou: ");
 
-const stdout = process.stdout.toString();
-const stderr = process.stderr.toString();
-const exitCode = process.exitCode;
-const signalCode = process.signalCode;
+let isBusy = false;
+const consoleLines: string[] = [];
+for await (const line of console) {
+  if (line === "/end") {
+    break;
+  }
+  if (line === "/busy") {
+    isBusy = true;
+    break;
+  }
+  consoleLines.push(line);
+}
 
-console.log("stdout:", stdout);
-console.log("stderr:", stderr);
-console.log("exitCode:", exitCode);
-console.log("signalCode:", signalCode);
+if (isBusy) {
+  console.log({
+    user: undefined,
+    system: "The user is busy right now. Please try again later.",
+  });
+} else {
+  const userMessage = consoleLines.join("\n").trim();
+  if (!userMessage) {
+    console.log({
+      user: undefined,
+      system: "The user did not provide a message.",
+    });
+  }
+
+  console.log({
+    user: userMessage,
+    system: undefined,
+  });
+}
