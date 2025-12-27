@@ -1,7 +1,23 @@
 import { ok, err, type Result } from "neverthrow";
 import type { FileDoesNotExistError, UnexpectedError } from "@/types";
+import * as z from "zod";
 
-export type ValidFilePath = string & { __brand: "ValidFilePath" };
+export const ValidFilePathSchema = z
+  .string()
+  .superRefine(async (value, ctx) => {
+    const validationResult = await validateFilePath(value);
+
+    if (validationResult.isErr()) {
+      ctx.addIssue({
+        code: "custom",
+        message: validationResult.error.message,
+        input: value,
+      });
+    }
+  })
+  .brand("ValidFilePath");
+
+export type ValidFilePath = z.infer<typeof ValidFilePathSchema>;
 
 export async function validateFilePath(
   filePath: string
